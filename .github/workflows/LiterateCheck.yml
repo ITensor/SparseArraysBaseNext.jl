@@ -18,6 +18,9 @@ jobs:
         run: |
           julia  -e '
           using Pkg
+          # TODO: Delete these once they are registered.
+          Pkg.add(url="https://github.com/ITensor/TypeParameterAccessors.jl")
+          Pkg.add(url="https://github.com/ITensor/BroadcastMapConversion.jl")
           Pkg.develop(PackageSpec(path=pwd()))
           Pkg.instantiate()
           Pkg.add(PackageSpec(name="Literate"))'
