@@ -11,3 +11,7 @@ end
 function AnyArrays(type::Type)
   return (type, WrappedArrays(type)...)
 end
+
+function AnyArrays(types::Tuple)
+  return tuple_flatten(AnyArrays.(types))
+end
