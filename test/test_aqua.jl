@@ -4,6 +4,7 @@ using Aqua: Aqua
 using Test: @testset
 
 @testset "Code quality (Aqua.jl)" begin
-  Aqua.test_all(SparseArraysBaseNext)
+  # TODO: Reenable once dependencies are registered.
+  # Aqua.test_all(SparseArraysBaseNext)
 end
 end

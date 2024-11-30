@@ -2,8 +2,7 @@ abstract type AbstractInterface end
 
 AbstractInterface(interface::AbstractInterface) = interface
 AbstractInterface(x) = AbstractInterface(typeof(x))
-# TODO: Throw a `MethodError` instead.
-AbstractInterface(type::Type) = error("Not implemented")
+AbstractInterface(type::Type) = throw(MethodError(AbstractInterface, (type,)))
 
 # TODO: Define interface promotion, maybe just use `BroadcastStyle` directly.
 # https://docs.julialang.org/en/v1/manual/interfaces/#writing-binary-broadcasting-rules

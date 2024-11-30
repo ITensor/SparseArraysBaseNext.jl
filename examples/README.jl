@@ -20,23 +20,7 @@ julia> Pkg.add(url="https://github.com/ITensor/SparseArraysBaseNext.jl")
 # ## Examples
 
 using SparseArraysBaseNext:
-  SparseArraysBaseNext,
-  @derive,
-  AbstractArrayOps,
-  AnyArrays,
-  SparseArrayDOK,
-  SparseArrayInterface,
-  eachstoredindex,
-  isstored,
-  storedlength,
-  storedvalues
-
-# Specify that `SparseArrayDOK` should adhere to the sparse array interface.
-SparseArraysBaseNext.AbstractInterface(::Type{<:SparseArrayDOK}) = SparseArrayInterface()
-
-# Derive the sparse array interface for the type `SparseArrayDOK` and wrapped versions
-# of `SparseArrayDOK`.
-@derive AnyArrays(SparseArrayDOK) AbstractArrayOps
+  SparseArrayDOK, eachstoredindex, isstored, storedlength, storedvalues
 
 a = SparseArrayDOK{Float64}(2, 2)
 a[1, 2] = 12
