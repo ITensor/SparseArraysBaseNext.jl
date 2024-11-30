@@ -8,6 +8,10 @@ function SparseArrayDOK{T}(size::Int...) where {T}
   return SparseArrayDOK{T,N}(Dict{CartesianIndex{N},T}(), size)
 end
 
+AbstractInterface(::Type{<:SparseArrayDOK}) = SparseArrayInterface()
+
+@derive AnyArrays(SparseArrayDOK) AbstractArrayOps
+
 Base.size(a::SparseArrayDOK) = a.size
 
 storedvalues(a::SparseArrayDOK) = a.storedvalues

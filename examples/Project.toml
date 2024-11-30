@@ -5,5 +5,5 @@ TypeParameterAccessors = "7e5a90cf-f82e-492e-a09b-e3e26432c138"
 
 [sources]
 BroadcastMapConversion = {url = "https://github.com/ITensor/BroadcastMapConversion.jl"}
-SparseArraysBaseNext = {url = "https://github.com/ITensor/SparseArraysBaseNext.jl"}
+SparseArraysBaseNext = {path = ".."}
 TypeParameterAccessors = {url = "https://github.com/ITensor/TypeParameterAccessors.jl"}
