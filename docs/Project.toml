@@ -1,0 +1,11 @@
+[deps]
+BroadcastMapConversion = "4a4adec5-520f-4750-bb37-d5e66b4ddeb2"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
+SparseArraysBaseNext = "d239194b-8157-4d49-a0f1-e790eb72a729"
+TypeParameterAccessors = "7e5a90cf-f82e-492e-a09b-e3e26432c138"
+
+[sources]
+BroadcastMapConversion = {url = "https://github.com/ITensor/BroadcastMapConversion.jl"}
+SparseArraysBaseNext = {url = "https://github.com/ITensor/SparseArraysBaseNext.jl"}
+TypeParameterAccessors = {url = "https://github.com/ITensor/TypeParameterAccessors.jl"}
