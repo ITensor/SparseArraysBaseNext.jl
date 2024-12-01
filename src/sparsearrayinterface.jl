@@ -17,14 +17,17 @@ function eachstoredindex(a1, a2, a_rest...)
 end
 
 # TODO: Add `ndims` type parameter.
+# TODO: Define `AbstractSparseArrayInterface`, make this a subtype.
 struct SparseArrayInterface <: AbstractArrayInterface end
 
-function interface_getindex(::SparseArrayInterface, a, I::Int...)
+# TODO: Use `ArrayLayouts.layout_getindex`, `ArrayLayouts.sub_materialize`
+# to handle slicing (implemented by copying SubArray).
+function getindex(::SparseArrayInterface, a, I::Int...)
   !isstored(a, I...) && return getunstoredindex(a, I...)
   return getstoredindex(a, I...)
 end
 
-function interface_setindex!(::SparseArrayInterface, a, value, I::Int...)
+function setindex!(::SparseArrayInterface, a, value, I::Int...)
   iszero(value) && return a
   if !isstored(a, I...)
     setunstoredindex!(a, value, I...)
@@ -36,49 +39,113 @@ end
 
 # TODO: This may need to be defined in `sparsearraydok.jl`, after `SparseArrayDOK`
 # is defined. And/or define `default_type(::SparseArrayStyle, T::Type) = SparseArrayDOK{T}`.
-function interface_similar(::SparseArrayInterface, a, T::Type, size::Tuple{Vararg{Int}})
+function similar(::SparseArrayInterface, a, T::Type, size::Tuple{Vararg{Int}})
   return SparseArrayDOK{T}(size...)
 end
 
 ## TODO: Make this more general, handle mixtures of integers and ranges.
 ## TODO: Make this logic generic to all `similar(::AbstractInterface, ...)`.
-## function interface_similar(interface::SparseArrayInterface, a, T::Type, dims::Tuple{Vararg{Base.OneTo}})
+## function similar(interface::SparseArrayInterface, a, T::Type, dims::Tuple{Vararg{Base.OneTo}})
 ##   return similar(interface, a, T, Base.to_shape(dims))
 ## end
 
-function interface_map(::SparseArrayInterface, f, as...)
+function map(::SparseArrayInterface, f, as...)
   # This is defined in this way so we can rely on the Broadcast logic
   # for determining the destination of the operation (element type, shape, etc.).
   return f.(as...)
 end
 
-function interface_map!(::SparseArrayInterface, f, dest, as...)
+function map!(::SparseArrayInterface, f, dest, as...)
   # Check `f` preserves zeros.
   # Define as `map_stored!`.
   # Define `eachstoredindex` promotion.
   for I in eachstoredindex(as...)
-    dest[I] = f(map(a -> a[I], as)...)
+    dest[I] = f(Base.map(a -> a[I], as)...)
   end
   return dest
 end
 
+# TODO: Define `AbstractSparseArrayStyle`, make this a subtype.
 struct SparseArrayStyle{N} <: Broadcast.AbstractArrayStyle{N} end
 
 SparseArrayStyle{M}(::Val{N}) where {M,N} = SparseArrayStyle{N}()
 
-function interface_BroadcastStyle(::SparseArrayInterface, type::Type)
+function BroadcastStyle(::SparseArrayInterface, type::Type)
   return SparseArrayStyle{ndims(type)}()
 end
 
 function Base.similar(bc::Broadcast.Broadcasted{<:SparseArrayStyle}, T::Type, axes::Tuple)
   # TODO: Allow `similar` to accept `axes` directly.
-  return interface_similar(SparseArrayInterface(), bc, T, Int.(length.(axes)))
+  return SparseArraysBaseNext.similar(SparseArrayInterface(), bc, T, Int.(length.(axes)))
 end
 
 using BroadcastMapConversion: map_function, map_args
 # TODO: Look into `SparseArrays.capturescalars`:
 # https://github.com/JuliaSparse/SparseArrays.jl/blob/1beb0e4a4618b0399907b0000c43d9f66d34accc/src/higherorderfns.jl#L1092-L1102
 function Base.copyto!(dest::AbstractArray, bc::Broadcast.Broadcasted{<:SparseArrayStyle})
-  interface_map!(SparseArrayInterface(), map_function(bc), dest, map_args(bc)...)
+  SparseArraysBaseNext.map!(SparseArrayInterface(), map_function(bc), dest, map_args(bc)...)
   return dest
+end
+
+using ArrayLayouts: ArrayLayouts, MatMulMatAdd
+
+abstract type AbstractSparseLayout <: ArrayLayouts.MemoryLayout end
+
+struct SparseLayout <: AbstractSparseLayout end
+
+MemoryLayout(::SparseArrayInterface, type::Type) = SparseLayout()
+
+function mul!(::SparseArrayInterface, a_dest, a1, a2, α, β)
+  return ArrayLayouts.mul!(a_dest, a1, a2, α, β)
+end
+
+function mul_indices(I1::CartesianIndex{2}, I2::CartesianIndex{2})
+  if I1[2] ≠ I2[1]
+    return nothing
+  end
+  return CartesianIndex(I1[1], I2[2])
+end
+
+function default_mul!!(
+  a_dest::AbstractMatrix,
+  a1::AbstractMatrix,
+  a2::AbstractMatrix,
+  α::Number=true,
+  β::Number=false,
+)
+  mul!(a_dest, a1, a2, α, β)
+  return a_dest
+end
+
+function default_mul!!(
+  a_dest::Number, a1::Number, a2::Number, α::Number=true, β::Number=false
+)
+  return a1 * a2 * α + a_dest * β
+end
+
+# a1 * a2 * α + a_dest * β
+function sparse_mul!(
+  a_dest::AbstractArray,
+  a1::AbstractArray,
+  a2::AbstractArray,
+  α::Number=true,
+  β::Number=false;
+  (mul!!)=(default_mul!!),
+)
+  for I1 in eachstoredindex(a1)
+    for I2 in eachstoredindex(a2)
+      I_dest = mul_indices(I1, I2)
+      if !isnothing(I_dest)
+        a_dest[I_dest] = mul!!(a_dest[I_dest], a1[I1], a2[I2], α, β)
+      end
+    end
+  end
+  return a_dest
+end
+
+function ArrayLayouts.materialize!(
+  m::MatMulMatAdd{<:AbstractSparseLayout,<:AbstractSparseLayout,<:AbstractSparseLayout}
+)
+  sparse_mul!(m.C, m.A, m.B, m.α, m.β)
+  return m.C
 end

@@ -1,3 +1,4 @@
+# TODO: Define `AbstractSparseArray`, make this a subtype.
 struct SparseArrayDOK{T,N} <: AbstractArray{T,N}
   storedvalues::Dict{CartesianIndex{N},T}
   size::NTuple{N,Int}
@@ -10,7 +11,9 @@ end
 
 AbstractInterface(::Type{<:SparseArrayDOK}) = SparseArrayInterface()
 
-@derive AnyArrays(SparseArrayDOK) AbstractArrayOps
+# TODO: Define `WrappedSparseArrayDOK`, `AnySparseArrayDOK`, define macros
+# to make those easier to define.
+@derive AnyArrayType(SparseArrayDOK) AbstractArrayOps()
 
 Base.size(a::SparseArrayDOK) = a.size
 
@@ -43,7 +46,7 @@ function isstored(a::Adjoint, i::Int, j::Int)
 end
 function eachstoredindex(a::Adjoint)
   # TODO: Make lazy with `Iterators.map`.
-  return map(CartesianIndex ∘ reverse ∘ Tuple, collect(eachstoredindex(parent(a))))
+  return Base.map(CartesianIndex ∘ reverse ∘ Tuple, collect(eachstoredindex(parent(a))))
 end
 function getstoredindex(a::Adjoint, i::Int, j::Int)
   return getstoredindex(parent(a), j, i)'
