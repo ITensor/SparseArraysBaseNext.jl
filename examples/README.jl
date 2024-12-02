@@ -20,17 +20,32 @@ julia> Pkg.add(url="https://github.com/ITensor/SparseArraysBaseNext.jl")
 # ## Examples
 
 using SparseArraysBaseNext:
-  SparseArrayDOK, eachstoredindex, isstored, storedlength, storedvalues
+  SparseArrayDOK, eachstoredindex, isstored, storedlength, storedpairs, storedvalues
+using Test: @test
 
 a = SparseArrayDOK{Float64}(2, 2)
 a[1, 2] = 12
-@show a[1, 1]
-@show a[1, 2]
+a[2, 1] = 21
+@test a[1, 1] == 0
+@test a[2, 1] == 21
+@test a[1, 2] == 12
+@test a[2, 2] == 0
+
 b = a .+ 2 .* a'
-@show storedvalues(b)
-@show eachstoredindex(b)
-@show isstored(b, 1, 1)
-@show isstored(b, 2, 1)
-@show isstored(b, 1, 2)
-@show isstored(b, 2, 2)
-@show storedlength(b)
+@test b[1, 1] == 0
+@test b[2, 1] == 21 + 2 * 12
+@test b[1, 2] == 12 + 2 * 21
+@test b[2, 2] == 0
+@test issetequal(storedvalues(b), [21 + 2 * 12, 12 + 2 * 21])
+@test issetequal(eachstoredindex(b), [CartesianIndex(2, 1), CartesianIndex(1, 2)])
+@test storedpairs(b) ==
+  Dict(CartesianIndex(2, 1) => 21 + 2 * 12, CartesianIndex(1, 2) => 12 + 2 * 21)
+@test !isstored(b, 1, 1)
+@test isstored(b, 2, 1)
+@test isstored(b, 1, 2)
+@test !isstored(b, 2, 2)
+@test storedlength(b) == 2
+
+c = a * a'
+@test storedlength(c) == 2
+@test c == [12*12 0; 0 21*21]

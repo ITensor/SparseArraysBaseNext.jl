@@ -1,5 +1,6 @@
+# TODO: Define `AbstractSparseArray`, make this a subtype.
 struct SparseArrayDOK{T,N} <: AbstractArray{T,N}
-  storedvalues::Dict{CartesianIndex{N},T}
+  storage::Dict{CartesianIndex{N},T}
   size::NTuple{N,Int}
 end
 
@@ -8,33 +9,45 @@ function SparseArrayDOK{T}(size::Int...) where {T}
   return SparseArrayDOK{T,N}(Dict{CartesianIndex{N},T}(), size)
 end
 
-AbstractInterface(::Type{<:SparseArrayDOK}) = SparseArrayInterface()
+using .InterfaceImplementations: @wrappedtype
+# Define `WrappedSparseArrayDOK` and `AnySparseArrayDOK`.
+@wrappedtype SparseArrayDOK
 
-@derive AnyArrays(SparseArrayDOK) AbstractArrayOps
+using .InterfaceImplementations: InterfaceImplementations
+function InterfaceImplementations.AbstractInterface(::Type{<:SparseArrayDOK})
+  return SparseArrayInterface()
+end
 
+using .InterfaceImplementations: AbstractArrayOps, @derive
+@derive AnySparseArrayDOK AbstractArrayOps()
+
+storage(a::SparseArrayDOK) = a.storage
 Base.size(a::SparseArrayDOK) = a.size
 
-storedvalues(a::SparseArrayDOK) = a.storedvalues
+storedvalues(a::SparseArrayDOK) = values(storage(a))
 function isstored(a::SparseArrayDOK, I::Int...)
-  return CartesianIndex(I) in keys(storedvalues(a))
+  return CartesianIndex(I) in keys(storage(a))
 end
 function eachstoredindex(a::SparseArrayDOK)
-  return keys(storedvalues(a))
+  return keys(storage(a))
 end
 function getstoredindex(a::SparseArrayDOK, I::Int...)
-  return storedvalues(a)[CartesianIndex(I)]
+  return storage(a)[CartesianIndex(I)]
 end
 function getunstoredindex(a::SparseArrayDOK, I::Int...)
   return zero(eltype(a))
 end
 function setstoredindex!(a::SparseArrayDOK, value, I::Int...)
-  storedvalues(a)[CartesianIndex(I)] = value
+  storage(a)[CartesianIndex(I)] = value
   return a
 end
 function setunstoredindex!(a::SparseArrayDOK, value, I::Int...)
-  storedvalues(a)[CartesianIndex(I)] = value
+  storage(a)[CartesianIndex(I)] = value
   return a
 end
+
+# Optional, but faster than the default.
+storedpairs(a::SparseArrayDOK) = storage(a)
 
 using LinearAlgebra: Adjoint
 storedvalues(a::Adjoint) = storedvalues(parent(a))
@@ -43,7 +56,7 @@ function isstored(a::Adjoint, i::Int, j::Int)
 end
 function eachstoredindex(a::Adjoint)
   # TODO: Make lazy with `Iterators.map`.
-  return map(CartesianIndex ∘ reverse ∘ Tuple, collect(eachstoredindex(parent(a))))
+  return Base.map(CartesianIndex ∘ reverse ∘ Tuple, collect(eachstoredindex(parent(a))))
 end
 function getstoredindex(a::Adjoint, i::Int, j::Int)
   return getstoredindex(parent(a), j, i)'
