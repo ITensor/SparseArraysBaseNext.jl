@@ -19,7 +19,7 @@ julia> Pkg.add(url="https://github.com/ITensor/SparseArraysBaseNext.jl")
 
 ````julia
 using SparseArraysBaseNext:
-  SparseArrayDOK, eachstoredindex, isstored, storedlength, storedvalues
+  SparseArrayDOK, eachstoredindex, isstored, storedlength, storedpairs, storedvalues
 using Test: @test
 
 a = SparseArrayDOK{Float64}(2, 2)
@@ -35,9 +35,10 @@ b = a .+ 2 .* a'
 @test b[2, 1] == 21 + 2 * 12
 @test b[1, 2] == 12 + 2 * 21
 @test b[2, 2] == 0
-@test storedvalues(b) ==
-  Dict(CartesianIndex(2, 1) => 21 + 2 * 12, CartesianIndex(1, 2) => 12 + 2 * 21)
+@test issetequal(storedvalues(b), [21 + 2 * 12, 12 + 2 * 21])
 @test issetequal(eachstoredindex(b), [CartesianIndex(2, 1), CartesianIndex(1, 2)])
+@test storedpairs(b) ==
+  Dict(CartesianIndex(2, 1) => 21 + 2 * 12, CartesianIndex(1, 2) => 12 + 2 * 21)
 @test !isstored(b, 1, 1)
 @test isstored(b, 2, 1)
 @test isstored(b, 1, 2)

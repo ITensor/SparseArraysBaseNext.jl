@@ -1,4 +1,6 @@
 # Minimal interface for `SparseArrayInterface`.
+# TODO: Define default definitions for these based
+# on the dense case.
 storedvalues(a) = error()
 isstored(a, I::Int...) = error()
 eachstoredindex(a) = error()
@@ -9,6 +11,7 @@ setunstoredindex!(a, value, I::Int...) = error()
 
 # Derived interface.
 storedlength(a) = length(storedvalues(a))
+storedpairs(a) = map(I -> I => getstoredindex(a, I), eachstoredindex(a))
 
 function eachstoredindex(a1, a2, a_rest...)
   # TODO: Make this more customizable, say with a function
@@ -18,16 +21,17 @@ end
 
 # TODO: Add `ndims` type parameter.
 # TODO: Define `AbstractSparseArrayInterface`, make this a subtype.
+using .InterfaceImplementations: AbstractArrayInterface
 struct SparseArrayInterface <: AbstractArrayInterface end
 
 # TODO: Use `ArrayLayouts.layout_getindex`, `ArrayLayouts.sub_materialize`
 # to handle slicing (implemented by copying SubArray).
-function getindex(::SparseArrayInterface, a, I::Int...)
+function InterfaceImplementations.getindex(::SparseArrayInterface, a, I::Int...)
   !isstored(a, I...) && return getunstoredindex(a, I...)
   return getstoredindex(a, I...)
 end
 
-function setindex!(::SparseArrayInterface, a, value, I::Int...)
+function InterfaceImplementations.setindex!(::SparseArrayInterface, a, value, I::Int...)
   iszero(value) && return a
   if !isstored(a, I...)
     setunstoredindex!(a, value, I...)
@@ -39,23 +43,25 @@ end
 
 # TODO: This may need to be defined in `sparsearraydok.jl`, after `SparseArrayDOK`
 # is defined. And/or define `default_type(::SparseArrayStyle, T::Type) = SparseArrayDOK{T}`.
-function similar(::SparseArrayInterface, a, T::Type, size::Tuple{Vararg{Int}})
+function InterfaceImplementations.similar(
+  ::SparseArrayInterface, a, T::Type, size::Tuple{Vararg{Int}}
+)
   return SparseArrayDOK{T}(size...)
 end
 
 ## TODO: Make this more general, handle mixtures of integers and ranges.
 ## TODO: Make this logic generic to all `similar(::AbstractInterface, ...)`.
-## function similar(interface::SparseArrayInterface, a, T::Type, dims::Tuple{Vararg{Base.OneTo}})
-##   return similar(interface, a, T, Base.to_shape(dims))
+## function InterfaceImplementations.similar(interface::SparseArrayInterface, a, T::Type, dims::Tuple{Vararg{Base.OneTo}})
+##   return InterfaceImplementations.similar(interface, a, T, Base.to_shape(dims))
 ## end
 
-function map(::SparseArrayInterface, f, as...)
+function InterfaceImplementations.map(::SparseArrayInterface, f, as...)
   # This is defined in this way so we can rely on the Broadcast logic
   # for determining the destination of the operation (element type, shape, etc.).
   return f.(as...)
 end
 
-function map!(::SparseArrayInterface, f, dest, as...)
+function InterfaceImplementations.map!(::SparseArrayInterface, f, dest, as...)
   # Check `f` preserves zeros.
   # Define as `map_stored!`.
   # Define `eachstoredindex` promotion.
@@ -70,20 +76,24 @@ struct SparseArrayStyle{N} <: Broadcast.AbstractArrayStyle{N} end
 
 SparseArrayStyle{M}(::Val{N}) where {M,N} = SparseArrayStyle{N}()
 
-function BroadcastStyle(::SparseArrayInterface, type::Type)
+function InterfaceImplementations.BroadcastStyle(::SparseArrayInterface, type::Type)
   return SparseArrayStyle{ndims(type)}()
 end
 
 function Base.similar(bc::Broadcast.Broadcasted{<:SparseArrayStyle}, T::Type, axes::Tuple)
   # TODO: Allow `similar` to accept `axes` directly.
-  return SparseArraysBaseNext.similar(SparseArrayInterface(), bc, T, Int.(length.(axes)))
+  return InterfaceImplementations.similar(
+    SparseArrayInterface(), bc, T, Int.(length.(axes))
+  )
 end
 
 using BroadcastMapConversion: map_function, map_args
 # TODO: Look into `SparseArrays.capturescalars`:
 # https://github.com/JuliaSparse/SparseArrays.jl/blob/1beb0e4a4618b0399907b0000c43d9f66d34accc/src/higherorderfns.jl#L1092-L1102
 function Base.copyto!(dest::AbstractArray, bc::Broadcast.Broadcasted{<:SparseArrayStyle})
-  SparseArraysBaseNext.map!(SparseArrayInterface(), map_function(bc), dest, map_args(bc)...)
+  InterfaceImplementations.map!(
+    SparseArrayInterface(), map_function(bc), dest, map_args(bc)...
+  )
   return dest
 end
 
@@ -93,9 +103,9 @@ abstract type AbstractSparseLayout <: ArrayLayouts.MemoryLayout end
 
 struct SparseLayout <: AbstractSparseLayout end
 
-MemoryLayout(::SparseArrayInterface, type::Type) = SparseLayout()
+InterfaceImplementations.MemoryLayout(::SparseArrayInterface, type::Type) = SparseLayout()
 
-function mul!(::SparseArrayInterface, a_dest, a1, a2, α, β)
+function InterfaceImplementations.mul!(::SparseArrayInterface, a_dest, a1, a2, α, β)
   return ArrayLayouts.mul!(a_dest, a1, a2, α, β)
 end
 
