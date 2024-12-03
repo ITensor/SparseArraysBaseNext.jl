@@ -9,16 +9,16 @@ function SparseArrayDOK{T}(size::Int...) where {T}
   return SparseArrayDOK{T,N}(Dict{CartesianIndex{N},T}(), size)
 end
 
-using .InterfaceImplementations: @wrappedtype
+using .Derive: @wrappedtype
 # Define `WrappedSparseArrayDOK` and `AnySparseArrayDOK`.
 @wrappedtype SparseArrayDOK
 
-using .InterfaceImplementations: InterfaceImplementations
-function InterfaceImplementations.AbstractInterface(::Type{<:SparseArrayDOK})
+using .Derive: Derive
+function Derive.AbstractInterface(::Type{<:SparseArrayDOK})
   return SparseArrayInterface()
 end
 
-using .InterfaceImplementations: AbstractArrayOps, @derive
+using .Derive: AbstractArrayOps, @derive
 @derive AnySparseArrayDOK AbstractArrayOps()
 
 storage(a::SparseArrayDOK) = a.storage

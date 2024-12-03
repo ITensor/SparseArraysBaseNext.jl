@@ -1,7 +1,7 @@
 module SparseArraysBaseNext
 
-include("lib/InterfaceImplementations/InterfaceImplementations.jl")
-using .InterfaceImplementations: InterfaceImplementations
+include("lib/Derive/Derive.jl")
+using .Derive: Derive
 include("sparsearrayinterface.jl")
 include("sparsearraydok.jl")
 
