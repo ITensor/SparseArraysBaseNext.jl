@@ -43,9 +43,7 @@ end
 
 # TODO: This may need to be defined in `sparsearraydok.jl`, after `SparseArrayDOK`
 # is defined. And/or define `default_type(::SparseArrayStyle, T::Type) = SparseArrayDOK{T}`.
-function Derive.similar(
-  ::SparseArrayInterface, a, T::Type, size::Tuple{Vararg{Int}}
-)
+function Derive.similar(::SparseArrayInterface, a, T::Type, size::Tuple{Vararg{Int}})
   return SparseArrayDOK{T}(size...)
 end
 
@@ -82,18 +80,14 @@ end
 
 function Base.similar(bc::Broadcast.Broadcasted{<:SparseArrayStyle}, T::Type, axes::Tuple)
   # TODO: Allow `similar` to accept `axes` directly.
-  return Derive.similar(
-    SparseArrayInterface(), bc, T, Int.(length.(axes))
-  )
+  return Derive.similar(SparseArrayInterface(), bc, T, Int.(length.(axes)))
 end
 
 using BroadcastMapConversion: map_function, map_args
 # TODO: Look into `SparseArrays.capturescalars`:
 # https://github.com/JuliaSparse/SparseArrays.jl/blob/1beb0e4a4618b0399907b0000c43d9f66d34accc/src/higherorderfns.jl#L1092-L1102
 function Base.copyto!(dest::AbstractArray, bc::Broadcast.Broadcasted{<:SparseArrayStyle})
-  Derive.map!(
-    SparseArrayInterface(), map_function(bc), dest, map_args(bc)...
-  )
+  Derive.map!(SparseArrayInterface(), map_function(bc), dest, map_args(bc)...)
   return dest
 end
 
