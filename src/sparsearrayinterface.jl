@@ -21,17 +21,17 @@ end
 
 # TODO: Add `ndims` type parameter.
 # TODO: Define `AbstractSparseArrayInterface`, make this a subtype.
-using .Derive: AbstractArrayInterface
+using .Derive: Derive, AbstractArrayInterface
 struct SparseArrayInterface <: AbstractArrayInterface end
 
 # TODO: Use `ArrayLayouts.layout_getindex`, `ArrayLayouts.sub_materialize`
 # to handle slicing (implemented by copying SubArray).
-function Derive.getindex(::SparseArrayInterface, a, I::Int...)
+function Derive.call(::SparseArrayInterface, ::typeof(getindex), a, I::Int...)
   !isstored(a, I...) && return getunstoredindex(a, I...)
   return getstoredindex(a, I...)
 end
 
-function Derive.setindex!(::SparseArrayInterface, a, value, I::Int...)
+function Derive.call(::SparseArrayInterface, ::typeof(setindex!), a, value, I::Int...)
   iszero(value) && return a
   if !isstored(a, I...)
     setunstoredindex!(a, value, I...)
@@ -43,7 +43,7 @@ end
 
 # TODO: This may need to be defined in `sparsearraydok.jl`, after `SparseArrayDOK`
 # is defined. And/or define `default_type(::SparseArrayStyle, T::Type) = SparseArrayDOK{T}`.
-function Derive.similar(::SparseArrayInterface, a, T::Type, size::Tuple{Vararg{Int}})
+function Derive.call(::SparseArrayInterface, ::typeof(similar), a, T::Type, size::Tuple{Vararg{Int}})
   return SparseArrayDOK{T}(size...)
 end
 
@@ -53,13 +53,13 @@ end
 ##   return Derive.similar(interface, a, T, Base.to_shape(dims))
 ## end
 
-function Derive.map(::SparseArrayInterface, f, as...)
+function Derive.call(::SparseArrayInterface, ::typeof(map), f, as...)
   # This is defined in this way so we can rely on the Broadcast logic
   # for determining the destination of the operation (element type, shape, etc.).
   return f.(as...)
 end
 
-function Derive.map!(::SparseArrayInterface, f, dest, as...)
+function Derive.call(::SparseArrayInterface, ::typeof(map!), f, dest, as...)
   # Check `f` preserves zeros.
   # Define as `map_stored!`.
   # Define `eachstoredindex` promotion.
@@ -74,7 +74,7 @@ struct SparseArrayStyle{N} <: Broadcast.AbstractArrayStyle{N} end
 
 SparseArrayStyle{M}(::Val{N}) where {M,N} = SparseArrayStyle{N}()
 
-function Derive.BroadcastStyle(::SparseArrayInterface, type::Type)
+function Derive.call(::SparseArrayInterface, ::Broadcast.BroadcastStyle, type::Type)
   return SparseArrayStyle{ndims(type)}()
 end
 
@@ -97,9 +97,10 @@ abstract type AbstractSparseLayout <: ArrayLayouts.MemoryLayout end
 
 struct SparseLayout <: AbstractSparseLayout end
 
-Derive.MemoryLayout(::SparseArrayInterface, type::Type) = SparseLayout()
+Derive.call(::SparseArrayInterface, ::ArrayLayouts.MemoryLayout, type::Type) = SparseLayout()
 
-function Derive.mul!(::SparseArrayInterface, a_dest, a1, a2, α, β)
+using LinearAlgebra: LinearAlgebra
+function Derive.call(::SparseArrayInterface, ::typeof(LinearAlgebra.mul!), a_dest, a1, a2, α, β)
   return ArrayLayouts.mul!(a_dest, a1, a2, α, β)
 end
 

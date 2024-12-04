@@ -1,3 +1,7 @@
+# Rewrite `f(args...)` to `Derive.call(::AbstractInterface, f, args...)`.
+# Similar to `Cassette.overdub`.
+function call end
+
 abstract type AbstractInterface end
 
 AbstractInterface(interface::AbstractInterface) = interface

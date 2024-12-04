@@ -18,8 +18,8 @@ function Derive.AbstractInterface(::Type{<:SparseArrayDOK})
   return SparseArrayInterface()
 end
 
-using .Derive: AbstractArrayOps, @derive
-@derive AnySparseArrayDOK AbstractArrayOps()
+## using .Derive: AbstractArrayOps, @derive
+## @derive AnySparseArrayDOK AbstractArrayOps()
 
 storage(a::SparseArrayDOK) = a.storage
 Base.size(a::SparseArrayDOK) = a.size
@@ -56,7 +56,7 @@ function isstored(a::Adjoint, i::Int, j::Int)
 end
 function eachstoredindex(a::Adjoint)
   # TODO: Make lazy with `Iterators.map`.
-  return Base.map(CartesianIndex ∘ reverse ∘ Tuple, collect(eachstoredindex(parent(a))))
+  return map(CartesianIndex ∘ reverse ∘ Tuple, collect(eachstoredindex(parent(a))))
 end
 function getstoredindex(a::Adjoint, i::Int, j::Int)
   return getstoredindex(parent(a), j, i)'
