@@ -116,7 +116,9 @@ function derive_interface_func(interface::Expr, func::Expr)
     :($M.$f) => :(Derive.call)
   end
   # TODO: Remove defaults from `kwargs`.
-  _, body, _ = split_function(codegen_ast(JLFunction(; name=body_name, args=body_args, kwargs)))
+  _, body, _ = split_function(
+    codegen_ast(JLFunction(; name=body_name, args=body_args, kwargs))
+  )
   jlfn = JLFunction(; name, args=named_args, kwargs, whereparams, rettype, body)
   # Use `globalref_derive` to not require having `Derive` in the
   # namespace when `@derive` is called.
@@ -124,7 +126,8 @@ function derive_interface_func(interface::Expr, func::Expr)
 end
 
 function derive_func(types::Expr, func::Expr)
-  Meta.isexpr(types, :tuple) && all(arg -> Meta.isexpr(arg, :(=)), types.args) || error("Wrong types format.")
+  Meta.isexpr(types, :tuple) && all(arg -> Meta.isexpr(arg, :(=)), types.args) ||
+    error("Wrong types format.")
   name, args, kwargs, whereparams, rettype = split_function_head(func)
 
   @show types

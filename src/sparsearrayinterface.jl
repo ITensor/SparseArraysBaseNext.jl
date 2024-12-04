@@ -43,7 +43,9 @@ end
 
 # TODO: This may need to be defined in `sparsearraydok.jl`, after `SparseArrayDOK`
 # is defined. And/or define `default_type(::SparseArrayStyle, T::Type) = SparseArrayDOK{T}`.
-function Derive.call(::SparseArrayInterface, ::typeof(similar), a, T::Type, size::Tuple{Vararg{Int}})
+function Derive.call(
+  ::SparseArrayInterface, ::typeof(similar), a, T::Type, size::Tuple{Vararg{Int}}
+)
   return SparseArrayDOK{T}(size...)
 end
 
@@ -97,10 +99,14 @@ abstract type AbstractSparseLayout <: ArrayLayouts.MemoryLayout end
 
 struct SparseLayout <: AbstractSparseLayout end
 
-Derive.call(::SparseArrayInterface, ::ArrayLayouts.MemoryLayout, type::Type) = SparseLayout()
+function Derive.call(::SparseArrayInterface, ::ArrayLayouts.MemoryLayout, type::Type)
+  return SparseLayout()
+end
 
 using LinearAlgebra: LinearAlgebra
-function Derive.call(::SparseArrayInterface, ::typeof(LinearAlgebra.mul!), a_dest, a1, a2, α, β)
+function Derive.call(
+  ::SparseArrayInterface, ::typeof(LinearAlgebra.mul!), a_dest, a1, a2, α, β
+)
   return ArrayLayouts.mul!(a_dest, a1, a2, α, β)
 end
 
