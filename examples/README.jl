@@ -28,15 +28,15 @@ using SparseArraysBaseNext: SparseArrayInterface
 
 ## @derive SparseArrayInterface (T=SparseArrayDOK) Base.getindex(::T, ::Int...)
 
-@derive SparseArrayInterface begin
-  Base.getindex(::SparseArrayDOK, ::Int...)
-  Base.setindex!(::SparseArrayDOK, ::Any, ::Int...)
-end
-
-## @derive (T=SparseArrayDOK,) begin
-##   Base.getindex(::T, ::Int...)
-##   Base.setindex!(::T, ::Any, ::Int...)
+## @derive SparseArrayInterface begin
+##   Base.getindex(::SparseArrayDOK, ::Int...)
+##   Base.setindex!(::SparseArrayDOK, ::Any, ::Int...)
 ## end
+
+@derive (T=SparseArrayDOK,) begin
+  Base.getindex(::T, ::Int...)
+  Base.setindex!(::T, ::Any, ::Int...)
+end
 
 ## @derive SparseArrayInterface (T=SparseArrayDOK) begin
 ##   Base.getindex(::T, ::Int...)
