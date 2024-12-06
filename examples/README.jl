@@ -29,7 +29,7 @@ using SparseArraysBaseNext:
   storedvalues
 using Test: @test
 
-using SparseArraysBaseNext.Derive: @derive, @interface
+using Derive: @derive, @interface
 using SparseArraysBaseNext: SparseArrayInterface
 
 ## @derive SparseArrayInterface() begin
