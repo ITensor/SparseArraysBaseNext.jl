@@ -21,7 +21,7 @@ end
 
 # TODO: Add `ndims` type parameter.
 # TODO: Define `AbstractSparseArrayInterface`, make this a subtype.
-using .Derive: Derive, @interface, AbstractArrayInterface
+using Derive: Derive, @interface, AbstractArrayInterface
 struct SparseArrayInterface <: AbstractArrayInterface end
 
 # Convenient shorthand to refer to the sparse interface.
