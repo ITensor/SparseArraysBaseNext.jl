@@ -21,17 +21,20 @@ end
 
 # TODO: Add `ndims` type parameter.
 # TODO: Define `AbstractSparseArrayInterface`, make this a subtype.
-using .Derive: Derive, AbstractArrayInterface
+using .Derive: Derive, @interface, AbstractArrayInterface
 struct SparseArrayInterface <: AbstractArrayInterface end
+
+# Convenient shorthand to refer to the sparse interface.
+const sparse = SparseArrayInterface()
 
 # TODO: Use `ArrayLayouts.layout_getindex`, `ArrayLayouts.sub_materialize`
 # to handle slicing (implemented by copying SubArray).
-function Derive.call(::SparseArrayInterface, ::typeof(getindex), a, I::Int...)
+@interface sparse function Base.getindex(a, I::Int...)
   !isstored(a, I...) && return getunstoredindex(a, I...)
   return getstoredindex(a, I...)
 end
 
-function Derive.call(::SparseArrayInterface, ::typeof(setindex!), a, value, I::Int...)
+@interface sparse function Base.setindex!(a, value, I::Int...)
   iszero(value) && return a
   if !isstored(a, I...)
     setunstoredindex!(a, value, I...)
@@ -43,30 +46,28 @@ end
 
 # TODO: This may need to be defined in `sparsearraydok.jl`, after `SparseArrayDOK`
 # is defined. And/or define `default_type(::SparseArrayStyle, T::Type) = SparseArrayDOK{T}`.
-function Derive.call(
-  ::SparseArrayInterface, ::typeof(similar), a, T::Type, size::Tuple{Vararg{Int}}
-)
+@interface sparse function Base.similar(a, T::Type, size::Tuple{Vararg{Int}})
   return SparseArrayDOK{T}(size...)
 end
 
 ## TODO: Make this more general, handle mixtures of integers and ranges.
 ## TODO: Make this logic generic to all `similar(::AbstractInterface, ...)`.
-## function Derive.similar(interface::SparseArrayInterface, a, T::Type, dims::Tuple{Vararg{Base.OneTo}})
-##   return Derive.similar(interface, a, T, Base.to_shape(dims))
+## @interface sparse function Base.similar(a, T::Type, dims::Tuple{Vararg{Base.OneTo}})
+##   return sparse(similar)(interface, a, T, Base.to_shape(dims))
 ## end
 
-function Derive.call(::SparseArrayInterface, ::typeof(map), f, as...)
+@interface sparse function Base.map(f, as...)
   # This is defined in this way so we can rely on the Broadcast logic
   # for determining the destination of the operation (element type, shape, etc.).
   return f.(as...)
 end
 
-function Derive.call(::SparseArrayInterface, ::typeof(map!), f, dest, as...)
+@interface sparse function Base.map!(f, dest, as...)
   # Check `f` preserves zeros.
   # Define as `map_stored!`.
   # Define `eachstoredindex` promotion.
   for I in eachstoredindex(as...)
-    dest[I] = f(Base.map(a -> a[I], as)...)
+    dest[I] = f(map(a -> a[I], as)...)
   end
   return dest
 end
@@ -76,20 +77,20 @@ struct SparseArrayStyle{N} <: Broadcast.AbstractArrayStyle{N} end
 
 SparseArrayStyle{M}(::Val{N}) where {M,N} = SparseArrayStyle{N}()
 
-function Derive.call(::SparseArrayInterface, ::Broadcast.BroadcastStyle, type::Type)
+@interface sparse function Broadcast.BroadcastStyle(type::Type)
   return SparseArrayStyle{ndims(type)}()
 end
 
 function Base.similar(bc::Broadcast.Broadcasted{<:SparseArrayStyle}, T::Type, axes::Tuple)
   # TODO: Allow `similar` to accept `axes` directly.
-  return Derive.similar(SparseArrayInterface(), bc, T, Int.(length.(axes)))
+  return sparse(similar)(bc, T, Int.(length.(axes)))
 end
 
 using BroadcastMapConversion: map_function, map_args
 # TODO: Look into `SparseArrays.capturescalars`:
 # https://github.com/JuliaSparse/SparseArrays.jl/blob/1beb0e4a4618b0399907b0000c43d9f66d34accc/src/higherorderfns.jl#L1092-L1102
 function Base.copyto!(dest::AbstractArray, bc::Broadcast.Broadcasted{<:SparseArrayStyle})
-  Derive.map!(SparseArrayInterface(), map_function(bc), dest, map_args(bc)...)
+  sparse(map!)(map_function(bc), dest, map_args(bc)...)
   return dest
 end
 
@@ -99,14 +100,12 @@ abstract type AbstractSparseLayout <: ArrayLayouts.MemoryLayout end
 
 struct SparseLayout <: AbstractSparseLayout end
 
-function Derive.call(::SparseArrayInterface, ::ArrayLayouts.MemoryLayout, type::Type)
+@interface sparse function ArrayLayouts.MemoryLayout(type::Type)
   return SparseLayout()
 end
 
 using LinearAlgebra: LinearAlgebra
-function Derive.call(
-  ::SparseArrayInterface, ::typeof(LinearAlgebra.mul!), a_dest, a1, a2, α, β
-)
+@interface sparse function LinearAlgebra.mul!(a_dest, a1, a2, α, β)
   return ArrayLayouts.mul!(a_dest, a1, a2, α, β)
 end
 

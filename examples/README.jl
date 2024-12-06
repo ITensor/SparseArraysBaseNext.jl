@@ -20,33 +20,59 @@ julia> Pkg.add(url="https://github.com/ITensor/SparseArraysBaseNext.jl")
 # ## Examples
 
 using SparseArraysBaseNext:
-  SparseArrayDOK, eachstoredindex, isstored, storedlength, storedpairs, storedvalues
+  AnySparseArrayDOK,
+  SparseArrayDOK,
+  eachstoredindex,
+  isstored,
+  storedlength,
+  storedpairs,
+  storedvalues
 using Test: @test
 
-using SparseArraysBaseNext.Derive: @derive
+using SparseArraysBaseNext.Derive: @derive, @interface
 using SparseArraysBaseNext: SparseArrayInterface
 
-## @derive SparseArrayInterface (T=SparseArrayDOK) Base.getindex(::T, ::Int...)
-
-## @derive SparseArrayInterface begin
+## @derive SparseArrayInterface() begin
 ##   Base.getindex(::SparseArrayDOK, ::Int...)
 ##   Base.setindex!(::SparseArrayDOK, ::Any, ::Int...)
 ## end
 
-@derive (T=SparseArrayDOK,) begin
-  Base.getindex(::T, ::Int...)
-  Base.setindex!(::T, ::Any, ::Int...)
-end
+## @derive SparseArrayInterface() begin
+##   Base.getindex(::SparseArrayDOK, ::Int...)
+##   Base.setindex!(::SparseArrayDOK, ::Any, ::Int...)
+## end
 
-## @derive SparseArrayInterface (T=SparseArrayDOK) begin
+## @derive SparseArrayInterface() Base.getindex(::SparseArrayDOK, ::Int...)
+## @derive SparseArrayInterface() Base.setindex!(::SparseArrayDOK, ::Any, ::Int...)
+
+## @derive (T=SparseArrayDOK,) begin
 ##   Base.getindex(::T, ::Int...)
 ##   Base.setindex!(::T, ::Any, ::Int...)
 ## end
 
+## @derive (T=SparseArrayDOK,) Base.getindex(::T, ::Int...)
+## @derive (T=SparseArrayDOK,) Base.setindex!(::T, ::Any, ::Int...)
+
+## @derive SparseArrayInterface() (T=SparseArrayDOK,) begin
+##   Base.getindex(::T, ::Int...)
+##   Base.setindex!(::T, ::Any, ::Int...)
+## end
+
+## @derive SparseArrayInterface() (T=SparseArrayDOK,) Base.getindex(::T, ::Int...)
+## @derive SparseArrayInterface() (T=SparseArrayDOK,) Base.setindex!(::T, ::Any, ::Int...)
+
 # TODO: Pre-defined sets of overloads. To implement.
-# @derive SparseArrayInterface SparseArrayDOK AbstractArrayOps
+## @derive SparseArrayInterface() AnySparseArrayDOK AbstractArrayOps
+
+@derive AnySparseArrayDOK AbstractArrayOps
 
 a = SparseArrayDOK{Float64}(2, 2)
+
+@show @interface SparseArrayInterface() a[1, 1]
+@show SparseArrayInterface()(getindex)(a, 1, 1)
+
+@show a[1, 1]
+
 a[1, 2] = 12
 a[2, 1] = 21
 @test a[1, 1] == 0
@@ -54,21 +80,21 @@ a[2, 1] = 21
 @test a[1, 2] == 12
 @test a[2, 2] == 0
 
-## b = a .+ 2 .* a'
-## @test b[1, 1] == 0
-## @test b[2, 1] == 21 + 2 * 12
-## @test b[1, 2] == 12 + 2 * 21
-## @test b[2, 2] == 0
-## @test issetequal(storedvalues(b), [21 + 2 * 12, 12 + 2 * 21])
-## @test issetequal(eachstoredindex(b), [CartesianIndex(2, 1), CartesianIndex(1, 2)])
-## @test storedpairs(b) ==
-##   Dict(CartesianIndex(2, 1) => 21 + 2 * 12, CartesianIndex(1, 2) => 12 + 2 * 21)
-## @test !isstored(b, 1, 1)
-## @test isstored(b, 2, 1)
-## @test isstored(b, 1, 2)
-## @test !isstored(b, 2, 2)
-## @test storedlength(b) == 2
-## 
-## c = a * a'
-## @test storedlength(c) == 2
-## @test c == [12*12 0; 0 21*21]
+b = a .+ 2 .* a'
+@test b[1, 1] == 0
+@test b[2, 1] == 21 + 2 * 12
+@test b[1, 2] == 12 + 2 * 21
+@test b[2, 2] == 0
+@test issetequal(storedvalues(b), [21 + 2 * 12, 12 + 2 * 21])
+@test issetequal(eachstoredindex(b), [CartesianIndex(2, 1), CartesianIndex(1, 2)])
+@test storedpairs(b) ==
+  Dict(CartesianIndex(2, 1) => 21 + 2 * 12, CartesianIndex(1, 2) => 12 + 2 * 21)
+@test !isstored(b, 1, 1)
+@test isstored(b, 2, 1)
+@test isstored(b, 1, 2)
+@test !isstored(b, 2, 2)
+@test storedlength(b) == 2
+
+c = a * a'
+@test storedlength(c) == 2
+@test c == [12*12 0; 0 21*21]

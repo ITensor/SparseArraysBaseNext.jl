@@ -1,25 +1,25 @@
-# Rewrite `f(args...)` to `Derive.call(::AbstractInterface, f, args...)`.
-# Similar to `Cassette.overdub`.
-function call end
+# Get the interface of an object.
+interface(x) = interface(typeof(x))
+# TODO: Define as `DefaultInterface()`.
+interface(::Type) = error("Interface unknown.")
+
+# Adapted from `Base.Broadcast.combine_styles`.
+# Get the combined interfaces of the input objects.
+function combine_interfaces(x1, x2, x_rest...)
+  return combine_interfaces(combine_interfaces(x1, x2), x_rest...)
+end
+combine_interfaces(x1, x2) = comine_interface_rule(interface(x1), interface(x2))
+combine_interfaces(x) = interface(x)
+
+# Rules for combining interfaces.
+function combine_interface_rule(
+  interface1::Interface, interface2::Interface
+) where {Interface}
+  return interface1
+end
+# TODO: Define as `UnknownInterface()`.
+combine_interface_rule(interface1, interface2) = error("No rule for combining interfaces.")
 
 abstract type AbstractInterface end
 
-AbstractInterface(interface::AbstractInterface) = interface
-AbstractInterface(x) = AbstractInterface(typeof(x))
-AbstractInterface(type::Type) = throw(MethodError(AbstractInterface, (type,)))
-
-# TODO: Define interface promotion, maybe just use `BroadcastStyle` directly.
-# https://docs.julialang.org/en/v1/manual/interfaces/#writing-binary-broadcasting-rules
-AbstractInterface(::AbstractInterface, ::AbstractInterface) = error("Not implemented")
-
-function AbstractInterface(::Interface, ::Interface) where {Interface<:AbstractInterface}
-  return Interface()
-end
-
-function AbstractInterface(
-  interface1::AbstractInterface,
-  interface2::AbstractInterface,
-  interface_rest::AbstractInterface...,
-)
-  return AbstractInterface(AbstractInterface(interface1, interface2), interface_rest...)
-end
+(interface::AbstractInterface)(f) = InterfaceFunction(interface, f)
